@@ -1,0 +1,25 @@
+.dropdownContainer-animation-enter {
+  opacity: 0;
+  transform: translateY(50px);
+}
+
+.dropdownContainer-animation-enter-active {
+  opacity: 0;
+  transform: translateY(0px);
+  transition:
+    opacity 300ms,
+    transform 300ms;
+}
+
+.dropdownContainer-animation-exit {
+  opacity: 1;
+  transform: translateY(0px);
+}
+
+.dropdownContainer-animation-exit-active {
+  opacity: 0;
+  transform: translateY(50px);
+  transition:
+    opacity 300ms,
+    transform 300ms;
+}
