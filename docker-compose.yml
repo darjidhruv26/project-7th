@@ -1,0 +1,21 @@
+version: '3'
+
+services:
+  backend:
+    env_file:
+        "./Backend/backend.env"
+    build:
+      context: ./Backend
+      dockerfile: ./Dockerfile
+    image: "dhruvdarji123/plms-backend"
+    ports:
+      - "5000:5000"
+  frontend:
+    build:
+      context: ./Frontend
+      dockerfile: ./Dockerfile
+    image: "dhruvdarji123/plms-frontend"
+    ports:
+      - "3000:3000"
+    links:
+      - "backend"
