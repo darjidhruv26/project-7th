@@ -13,7 +13,7 @@ function CourseDetail() {
   useEffect(() => {
     const fetchCourseDetail = async () => {
       const response = await getCourseById(courseId);
-      console.log(response);
+
       if (!response.ok) {
         return redirect("/error");
       }

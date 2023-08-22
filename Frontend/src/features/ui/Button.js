@@ -10,7 +10,7 @@ const Button = ({
   typeName = "primary",
   width = "w-full",
 }) => {
-  const classes = `${className} bg-primary-700 ${width} p-[0.8rem] text-white rounded-[0.4rem] disabled:cursor-not-allowed disabled:bg-stone-300`;
+  const classes = `${className} ${width} bg-primary-700 hover:bg-primary-600 active:bg-primary-700 focus:outline-none hover:scale-x-[1.02] focus:ring-offset-2 focus:ring focus:ring-primary-300 p-[0.8rem] text-white rounded-[0.4rem] disabled:cursor-not-allowed disabled:bg-stone-300 transition`;
   if (typeName === "secondary") {
     return (
       <button

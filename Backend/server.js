@@ -5,6 +5,7 @@ const cors = require("cors");
 const session = require("express-session");
 const MongoDBStore = require("connect-mongodb-session")(session);
 const Learner = require("./model/learner");
+const Instructor = require("./model/instructor");
 const Course = require("./model/course");
 const path = require("path");
 const multer = require("multer");
@@ -20,6 +21,7 @@ const app = express();
 const authRoutes = require("./routes/auth");
 const courseRoutes = require("./routes/course");
 const paymentRoutes = require("./routes/payment");
+const instructor = require("./model/instructor");
 
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
@@ -154,7 +156,6 @@ app.use(paymentRoutes);
 app.post("/createCourse", async (req, res, next) => {
   try {
     const data = req.body;
-    console.log(data);
 
     const course = new Course({
       courseTitle: data.courseTitle,
@@ -175,6 +176,7 @@ app.post("/createCourse", async (req, res, next) => {
 
     const result = await course.save();
     console.log("Course uploaded!.");
+
     return res
       .status(201)
       .send({ message: "Course is uploaded successfully." });
@@ -224,22 +226,31 @@ app.delete("/removefavouriteCourse", (req, res, next) => {
 app.get("/mycourses", (req, res, next) => {
   const email = "test@gmail.com";
   // find purchaesd course for loggedin user
-  const courseList = [
-    "64d48739592ecd4f3b1f4e8f",
-    "64d48c3a592ecd4f3b249415",
-    "64e0d142e676c5d488f86ae6",
-  ];
+  const courseList = ["64d488e9592ecd4f3b210d9b", "64d48c3a592ecd4f3b249415"];
   res.status(200).send({ message: courseList });
 });
 
-app.get("/favouriteCourseList", (req, res, next) => {
-  const favouriteCoursesList = [
-    "64d48739592ecd4f3b1f4e8f",
-    "64d48c3a592ecd4f3b249415",
-    "64d48a9b592ecd4f3b22e695",
-    "64d488e9592ecd4f3b210d9b",
-  ];
-  res.status(200).send({ message: favouriteCoursesList });
+app.get("/favouriteCourseList", async (req, res, next) => {
+  try {
+    const response = await Learner.find({ _id: "64e3a08a84c8f9229858e366" });
+
+    const favouriteCourseList = response[0].favouriteCourses;
+    console.log(favouriteCourseList);
+    res.status(200).send({ message: favouriteCourseList });
+  } catch (err) {
+    console.log(err);
+  }
+});
+app.get("/myCoursesInstructor", async (req, res, next) => {
+  try {
+    const response = await Instructor.find({ _id: "64e3a28c5b6886245b54c927" });
+
+    const myCourseList = response[0].favouriteCourses;
+    console.log(favouriteCourseList);
+    res.status(200).send({ message: myCourseList });
+  } catch (err) {
+    console.log(err);
+  }
 });
 
 mongoose

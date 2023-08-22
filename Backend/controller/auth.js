@@ -14,9 +14,7 @@ exports.learnerSignUp = async (req, res, next) => {
 
     const existingUser = await Learner.findOne({ email: email });
     if (existingUser) {
-      return res
-        .status(409)
-        .send({ message: "Email already registered with us." });
+      return res.status(409).send({ message: "Email already registered!" });
     }
 
     const hashedPassword = await bcrypt.hash(password, 12);

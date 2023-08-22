@@ -40,7 +40,7 @@ const MyCourse = () => {
               course={course}
               key={course._id}
               view="all"
-              isPurchaed={true}
+              isPurchased={true}
             />
           );
         })}

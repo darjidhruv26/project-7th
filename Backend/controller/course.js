@@ -48,7 +48,7 @@ exports.postFavouriteCourse = async (req, res, next) => {
     }
 
     const updatedUser = await Learner.findByIdAndUpdate(
-      loggedInUserId,
+      "64e3a08a84c8f9229858e366",
       { $addToSet: { favouriteCourses: courseId } },
       { new: true }
     );

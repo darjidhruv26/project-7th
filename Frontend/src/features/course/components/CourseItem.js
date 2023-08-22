@@ -12,7 +12,7 @@ import {
   removefavouriteCourse,
 } from "../../../services/apiCourse";
 
-function CourseItem({ course, view = "some", isPurchaed = false }) {
+function CourseItem({ course, view = "some", isPurchased = false }) {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const email = JSON.parse(localStorage.getItem("user"))?.data.email;
@@ -52,7 +52,7 @@ function CourseItem({ course, view = "some", isPurchaed = false }) {
     const elementId = e.target.parentElement.id;
     if (elementId || e.target.id === "wishlist-icon") {
       return;
-    } else if (isAuthenticated && isPurchaed) {
+    } else if (isAuthenticated && isPurchased) {
       navigate(`/learning?id=${courseId}&module=1`);
     } else {
       navigate(`/${courseId}`);

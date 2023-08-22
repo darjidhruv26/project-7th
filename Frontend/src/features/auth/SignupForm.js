@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 
@@ -24,7 +24,7 @@ const SignupForm = () => {
   const [isTouched, setIsTouched] = useState(false);
   const navigate = useNavigate();
 
-  const [formState, inputHandler] = useForm(
+  const [formState, inputHandler, setFormData] = useForm(
     {
       name: {
         value: "",
@@ -41,6 +41,27 @@ const SignupForm = () => {
     },
     false
   );
+
+  useEffect(() => {
+    console.log("run on side effect");
+    setFormData(
+      {
+        name: {
+          value: "",
+          isValid: false,
+        },
+        email: {
+          value: "",
+          isValid: false,
+        },
+        password: {
+          value: "",
+          isValid: false,
+        },
+      },
+      false
+    );
+  }, [isActive, setFormData]);
 
   const googleAuthHandler = async () => {
     await fetch("/googleAuth", {
@@ -175,7 +196,7 @@ const SignupForm = () => {
           <Button type="submit" className="mt-[2rem]">
             Sign-up
           </Button>
-          <div className={classes.divider}>or</div>
+          {/* <div className={classes.divider}>or</div>
           <button
             className="w-full flex items-center justify-center border-[1px] border-[#BDBDBD] rounded-[0.4rem] p-[.8rem] gap-2 mt-5"
             onClick={googleAuthHandler}
@@ -184,7 +205,7 @@ const SignupForm = () => {
               <img src={googleIcon} alt="google" />
             </span>
             Sign-up using google
-          </button>
+          </button> */}
         </form>
       </div>
     </div>
