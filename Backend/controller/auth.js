@@ -22,6 +22,7 @@ exports.learnerSignUp = async (req, res, next) => {
       name: name,
       email: email,
       password: hashedPassword,
+      myCourses: [],
     });
 
     await learner.save();
@@ -42,7 +43,7 @@ exports.instructorSignUp = async (req, res, next) => {
     if (!email || !password || !name) {
       return res
         .status(400)
-        .send({ message: "Name, Email and password are required" });
+        .send({ message: "Name, Email and passwords are required" });
     }
 
     const existingUser = await Instructor.findOne({ email: email });
@@ -57,6 +58,7 @@ exports.instructorSignUp = async (req, res, next) => {
       name: name,
       email: email,
       password: hashedPassword,
+      myCourses: [],
     });
 
     await instructor.save();
@@ -89,13 +91,12 @@ exports.learnerSignIn = async (req, res, next) => {
     if (doMatch) {
       console.log("Login");
       req.session.isLoggedIn = true;
-      req.session.user = learner;
+      req.session.learner = learner;
       await req.session.save();
 
       return res.status(200).send({
         message: "Login Successfully",
         role: "learner",
-        session: req.session.user,
       });
     } else {
       console.log("Error");
@@ -126,7 +127,7 @@ exports.instructorSignIn = async (req, res, next) => {
     if (doMatch) {
       console.log("Instructor Login");
       req.session.isLoggedIn = true;
-      req.session.user = instructor;
+      req.session.instructor = instructor;
 
       await req.session.save();
 
@@ -145,7 +146,7 @@ exports.instructorSignIn = async (req, res, next) => {
 };
 
 exports.postLogout = (req, res, next) => {
-  req.session.destroy((err) => {
+  req.session.destroy(err => {
     return res.status(200).send({ message: "logout" });
   });
 };

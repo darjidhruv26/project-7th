@@ -38,8 +38,7 @@ exports.getCourseById = async (req, res, next) => {
 
 exports.postFavouriteCourse = async (req, res, next) => {
   try {
-    const loggedInUserId = req.session.user;
-    console.log(loggedInUserId);
+    const loggedInUserId = req.session.learner;
     const { courseId } = req.body;
 
     const course = await Course.findOne({ _id: courseId });
@@ -48,7 +47,7 @@ exports.postFavouriteCourse = async (req, res, next) => {
     }
 
     const updatedUser = await Learner.findByIdAndUpdate(
-      "64e3a08a84c8f9229858e366",
+      loggedInUserId,
       { $addToSet: { favouriteCourses: courseId } },
       { new: true }
     );

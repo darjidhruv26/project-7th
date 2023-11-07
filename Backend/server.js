@@ -1,6 +1,6 @@
 const express = require("express");
 const bodyParser = require("body-parser");
-const mongoose = require("mongoose");
+const { mongoose, ObjectId } = require("mongoose");
 const cors = require("cors");
 const session = require("express-session");
 const MongoDBStore = require("connect-mongodb-session")(session);
@@ -14,6 +14,11 @@ const mongodb_url =
   "mongodb+srv://YagnikAkbari12:Ppsv%402020@cluster0.dq3pwce.mongodb.net/CourseFinityDB?retryWrites=true&w=majority";
 
 require("dotenv").config();
+
+const store = new MongoDBStore({
+  uri: mongodb_url,
+  collection: "sessions",
+});
 
 mongoose.set("strictQuery", false);
 const app = express();
@@ -30,6 +35,15 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
 app.use("/images", express.static(path.join(__dirname, "images")));
+
+app.use(
+  session({
+    secret: "my secret",
+    resave: false,
+    saveUninitialized: false,
+    store: store,
+  })
+);
 
 const fileStorage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -97,49 +111,26 @@ app.post(
   }
 );
 
-// app.use(express.static(path.resolve(__dirname, "build")));
+app.use((req, res, next) => {
+  if (!req.session.learner) {
+    return next();
+  }
 
-// app.get("*", (req, res) => {
-//   res.sendFile(path.resolve("build", "index.html"));
-// });
-
-const store = new MongoDBStore({
-  uri: mongodb_url,
-  collection: "sessions",
+  Learner.findById(req.session.learner_id).then((student) => {
+    req.learner = student;
+    next();
+  });
 });
 
-app.use(
-  session({
-    secret: "My Secret",
-    resave: true,
-    saveUninitialized: false,
-    store: store,
-    cookie: {
-      expires: 600000,
-    },
-  })
-);
-
-app.use(async (req, res, next) => {
-  try {
-    // console.log("session print from middlerware:-----", req.session);
-    if (!req.session.user) {
-      // console.log("no session found.");
-      return next();
-    }
-    const user = await Learner.findById(req.session.user._id);
-    console.log(user);
-    if (!user) {
-      // console.log("no user found!");
-      return next();
-    }
-
-    req.user = user;
-    next();
-  } catch (err) {
-    console.log(err);
-    throw new Error(err);
+app.use((req, res, next) => {
+  if (!req.session.instructor) {
+    return next();
   }
+
+  Instructor.findById(req.session.instructor_id).then((instructor) => {
+    req.instructor = instructor;
+    next();
+  });
 });
 
 app.use(
@@ -156,10 +147,11 @@ app.use(paymentRoutes);
 app.post("/createCourse", async (req, res, next) => {
   try {
     const data = req.body;
+    const session_instructor = req.session.instructor;
 
     const course = new Course({
       courseTitle: data.courseTitle,
-      courseAuthor: "64d10501ae8eb3a14396d671",
+      courseAuthor: session_instructor,
       courseImageUrl: data.courseImageUrl,
       coursePrice: data.coursePrice,
       courseDescription: data.courseDescription,
@@ -177,9 +169,21 @@ app.post("/createCourse", async (req, res, next) => {
     const result = await course.save();
     console.log("Course uploaded!.");
 
-    return res
-      .status(201)
-      .send({ message: "Course is uploaded successfully." });
+    if (result) {
+      const recentCourseId = result._id;
+      const updatedUser = await Instructor.findByIdAndUpdate(
+        session_instructor._id,
+        { $addToSet: { myCourses: recentCourseId } },
+        { new: true }
+      );
+
+      if (!updatedUser) {
+        console.log("can't find user");
+        return res.status(404).send({ message: "User not found" });
+      }
+
+      return res.status(201).send({ message: "Added to my Course!" });
+    }
   } catch (err) {
     console.log(err);
 
@@ -187,13 +191,8 @@ app.post("/createCourse", async (req, res, next) => {
   }
 });
 
-store.on("error", function (error) {
-  console.log("Session Store Error:", error);
-});
-
 app.post("/googleAuth", (req, res, next) => {
   const data = req.body;
-  console.log(data);
 });
 
 app.post("/resetEmail", (req, res, next) => {
@@ -211,46 +210,112 @@ app.post("/resetPassword", (req, res, next) => {
   res.status(200).send({ message: "passowrd change successful." });
 });
 
-app.post("/addfavouriteCourse", (req, res, next) => {
-  const { courseId, email } = req.body;
-  console.log(courseId, email);
-  res.status(201).send({ message: "added to favourite" });
+app.delete("/removefavouriteCourse", async (req, res, next) => {
+  try {
+    const loggedInUserId = req.session.learner;
+    const { courseId } = req.body;
+
+    const course = await Course.findOne({ _id: courseId });
+    if (!course) {
+      return res.status(404).send({ message: "Course not found" });
+    }
+
+    const updatedUser = await Learner.findByIdAndUpdate(
+      loggedInUserId,
+      { $pull: { favouriteCourses: courseId } },
+      { new: true }
+    );
+
+    if (!updatedUser) {
+      return res.status(404).send({ message: "User not found" });
+    }
+
+    res.status(200).send({ message: "Removed from favorites" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send({ message: "Error processing request" });
+  }
 });
 
-app.delete("/removefavouriteCourse", (req, res, next) => {
-  const { courseId, email } = req.body;
-  console.log(courseId, email);
-  res.status(200).send({ message: "remove from favourite" });
+app.get("/mycreatedcourses", async (req, res, next) => {
+  try {
+    const session_instructor_id = req.session.instructor._id;
+    const response = await Instructor.find({ _id: session_instructor_id });
+
+    const myCourseList = response[0].myCourses;
+
+    res.status(200).send({ message: myCourseList });
+  } catch (err) {
+    console.log(err);
+  }
 });
 
-app.get("/mycourses", (req, res, next) => {
-  const email = "test@gmail.com";
-  // find purchaesd course for loggedin user
-  const courseList = ["64d488e9592ecd4f3b210d9b", "64d48c3a592ecd4f3b249415"];
-  res.status(200).send({ message: courseList });
+app.delete("/deletecourse", async (req, res, next) => {
+  try {
+    const session_instructor_id = req.session.instructor._id;
+    const courseId = req.body.id;
+    const instructor = await Instructor.findOne({ _id: session_instructor_id });
+
+    if (!instructor) {
+      return res.status(404).send({ message: "Instructor not found." });
+    }
+
+    const courseIndex = instructor.myCourses.indexOf(courseId);
+
+    if (courseIndex === -1) {
+      return res
+        .status(404)
+        .send({ message: "Course not found in instructor's myCourses." });
+    }
+
+    instructor.myCourses.splice(courseIndex, 1);
+
+    await instructor.save();
+
+    const response1 = await Course.deleteOne({ _id: courseId });
+
+    if (response1.deletedCount > 0) {
+      res.status(200).send({ message: "Course deleted successfully." });
+      return;
+    } else {
+      return res.status(404).send({ message: "Course not found." });
+    }
+  } catch (err) {
+    console.log(err);
+    res.status(500).send({ message: "Internal server error." });
+  }
+});
+
+app.get("/mycourses", async (req, res, next) => {
+  try {
+    const session_learner_id = req.session.learner._id;
+
+    const response = await Learner.find({ _id: session_learner_id });
+
+    const myCourseList = response[0].myCourses;
+
+    res.status(200).send({ message: myCourseList });
+  } catch (err) {
+    console.log(err);
+  }
 });
 
 app.get("/favouriteCourseList", async (req, res, next) => {
   try {
-    const response = await Learner.find({ _id: "64e3a08a84c8f9229858e366" });
-
+    const session_learner = req.session.learner._id;
+    const response = await Learner.find({ _id: session_learner });
     const favouriteCourseList = response[0].favouriteCourses;
-    console.log(favouriteCourseList);
+
     res.status(200).send({ message: favouriteCourseList });
   } catch (err) {
     console.log(err);
   }
 });
-app.get("/myCoursesInstructor", async (req, res, next) => {
-  try {
-    const response = await Instructor.find({ _id: "64e3a28c5b6886245b54c927" });
 
-    const myCourseList = response[0].favouriteCourses;
-    console.log(favouriteCourseList);
-    res.status(200).send({ message: myCourseList });
-  } catch (err) {
-    console.log(err);
-  }
+app.use(express.static(path.resolve(__dirname, "build")));
+
+app.get("*", (req, res) => {
+  res.sendFile(path.resolve("build", "index.html"));
 });
 
 mongoose
