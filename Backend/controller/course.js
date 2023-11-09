@@ -39,6 +39,7 @@ exports.getCourseById = async (req, res, next) => {
 exports.postFavouriteCourse = async (req, res, next) => {
   try {
     const loggedInUserId = req.session.learner;
+    console.log(loggedInUserId);
     const { courseId } = req.body;
 
     const course = await Course.findOne({ _id: courseId });
